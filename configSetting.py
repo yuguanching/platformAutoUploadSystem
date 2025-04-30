@@ -43,6 +43,13 @@ feedback_manual = False
 output_root = f"{ROOT_PATH}/output/粉專/"
 
 sp_time = datetime.strptime("2010-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
+
+# Line Chat Bot 資訊
+line_bot_group_id = configSetting.cfg.get("LineChatBot", "GROUP_ID")
+line_bot_access_token = configSetting.cfg.get("LineChatBot", "ACCESS_TOKEN")
+line_bot_channel_secret = configSetting.cfg.get("LineChatBot", "CHANNEL_SECRET")
+
+
 # ---------- input settings ----------
 
 
@@ -61,6 +68,9 @@ else:
 queue_show_interval = 50
 multithread_median = 100
 multithread_high = 200
+
+# 通報渠道
+report_channel = 2  # 1:platform 2:Line
 # ---------- tasks settings ----------
 
 
