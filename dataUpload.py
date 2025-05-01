@@ -52,12 +52,7 @@ def data_upload_worker(queue: Queue, today_path:str, is_event_stop:Event):
                             writer.writeLogToFile(traceback.format_exc(), isError=True)
             else:
                 for current_record in current_record_list:
-                    msg = f'''
-                            通報粉專:{current_record["粉專名稱"]}
-                            發佈時間:{current_record["時間"]}
-                            內容:{current_record["內容"]}
-                            文章連結:{current_record["文章網址"]}                            
-                            '''
+                    msg = f'''通報粉專: {current_record["粉專名稱"]}\n發佈時間: {current_record["時間"]}\n內容: {current_record["內容"]}\n文章連結: {current_record["文章網址"]}'''
                     action.send_msg_to_bot(msg=msg)
 
             if queue.empty() and is_event_stop.is_set():

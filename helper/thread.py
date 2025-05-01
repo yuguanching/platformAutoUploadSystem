@@ -25,5 +25,6 @@ def generateThreadWorkers(taskNumbers: int) -> int:
         thread_workers = configSetting.multithread_high
     elif thread_workers >= configSetting.multithread_median:
         thread_workers = configSetting.multithread_median
-
+    if thread_workers == 0:
+        thread_workers = 1
     return thread_workers

@@ -187,8 +187,8 @@ if __name__ == "__main__":
             now = datetime.now()
             time_point = now.strftime("%Y-%m-%d %H:%M:%S")
 
-            if now.hour > 22 or now.hour < 8:
-            # if False:
+            # if now.hour > 22 or now.hour < 8:
+            if False:
                 stop_event.set()  # 发送子程序退出信号
                 p.join()
                 print("子程序已终止")
