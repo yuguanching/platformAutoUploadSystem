@@ -35,18 +35,32 @@ def runFansPage(jsonArrayDataSub, processNum) -> str:
             # 每個粉專資料有自己的子資料夾存放
             Auxiliary.checkDirAndCreate(target_object["targetName"])
             print(f"開始抓取 {target_object['targetName']} 的文章資料")
-            result = executor.submit(
-                crawlRequests.crawlPagePosts,
-                target_object["targetURL"],
-                target_object["targetID"],
-                target_object["docID"],
-                target_object["reqName"],
-                processNum,
-                target_object["targetName"],
-                q_data,
-                q_signal,
-            )
-            results.append(result)
+            if target_object["targetType"] == "individual":
+                result = executor.submit(
+                    crawlRequests.crawlPagePosts,
+                    target_object["targetURL"],
+                    target_object["targetID"],
+                    target_object["docID"],
+                    target_object["reqName"],
+                    processNum,
+                    target_object["targetName"],
+                    q_data,
+                    q_signal,
+                )
+                results.append(result)
+            elif target_object["targetType"] == "group":
+                result = executor.submit(
+                    crawlRequests.crawlGroupPosts,
+                    target_object["targetURL"],
+                    target_object["targetID"],
+                    target_object["docID"],
+                    target_object["reqName"],
+                    processNum,
+                    target_object["targetName"],
+                    q_data,
+                    q_signal,
+                )
+                results.append(result)
         for result in as_completed(results):
             try:
                 payload = result.result()
@@ -112,9 +126,6 @@ def scrapeFacebookDailyPosts():
 
     # 按行程的數量平分工作量
     target_split = Auxiliary.split(json_array_data["targets"], process_worker)
-    
-    print(target_split)
-    time.sleep(100000)
 
     for i in range(process_worker):
         json_array_data_copy_temp = json_array_data.copy()
@@ -182,6 +193,7 @@ if __name__ == "__main__":
             now = datetime.now()
             time_point = now.strftime("%Y-%m-%d %H:%M:%S")
             
+            # if True:
             if now.hour>=configSetting.json_array_data["taskSetting"]["taskStartIntervalHour"] and now.hour <= configSetting.json_array_data["taskSetting"]["taskEndIntervalHour"]:
                 proxy_ip_list = proxy.gRequestsProxyList(None)
                 ip_list_str = json.dumps(proxy_ip_list)

@@ -79,9 +79,7 @@ def dateCompareByLocalFile(targetDate:datetime, targetName:str)->int:
 def dateCompare(target_time_stamp, target_name) -> tuple[bool, bool, str]:
     
     arrive_first_catch_time = True
-    target_time = time.strftime(
-        "%Y-%m-%d %H:%M:%S", time.localtime(int(target_time_stamp))
-    )
+    target_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(target_time_stamp)))
     target_time_obj = datetime.strptime(target_time, "%Y-%m-%d %H:%M:%S")
     local_file_compare_status = dateCompareByLocalFile(target_time_obj, target_name)
     match local_file_compare_status:
@@ -95,16 +93,11 @@ def dateCompare(target_time_stamp, target_name) -> tuple[bool, bool, str]:
             if os.environ.get("job_start_time_point") is None:
                 user_start_time_obj = now - configSetting.fetch_inteval
             else:
-                user_start_time_obj = datetime.strptime(
-                    os.environ.get("job_start_time_point"), "%Y-%m-%d %H:%M:%S"
-                )
+                user_start_time_obj = datetime.strptime(os.environ.get("job_start_time_point"), "%Y-%m-%d %H:%M:%S")
             user_end_time_obj = now
             if target_time_obj >= user_end_time_obj:
                 arrive_first_catch_time = False
-
-            if (target_time_obj > user_start_time_obj) and (
-                target_time_obj < user_end_time_obj
-            ):
+            if (target_time_obj > user_start_time_obj) and (target_time_obj < user_end_time_obj):
                 return True, arrive_first_catch_time, target_time
             else:
                 return False, arrive_first_catch_time, target_time

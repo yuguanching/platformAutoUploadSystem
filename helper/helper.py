@@ -85,9 +85,7 @@ def __parsingCometModern__(resp: requests.Response, target_name: str) -> tuple[l
             edge = rawDataResolve.__resolverEdgesPage__(raw_edge)
             temp_cursor = edge["cursor"]
             if edge["creation_time"] != 0:
-                is_up_to_time, arrive_first_catch_time, temp_time = (
-                    Auxiliary.dateCompare(edge["creation_time"], target_name)
-                )
+                is_up_to_time, arrive_first_catch_time, temp_time = (Auxiliary.dateCompare(edge["creation_time"], target_name))
                 if is_up_to_time:
                     edge_list.append(edge)
             else:
@@ -124,6 +122,64 @@ def __parsingComments__(resp: requests.Response, posts_count) -> list:
 
         edge_list.append(dict_output)
         return edge_list
+    
+def __parsingGroupPosts__(resp: requests.Response, target_name: str) -> tuple[list, str, bool, bool, str]:
+    edge_list = []
+    resps = resp.text.split('\r\n', -1)
+    temp_cursor = ""
+    temp_time = ""
+    is_up_to_time = True
+    arrive_first_catch_time = False
+    for i, res in enumerate(resps):
+        check = json.loads(res)['data']
+        if "node" not in check:
+            continue
+        if "group_feed" not in check['node']:
+            if check['node'] is None:
+                continue
+            else:
+                try:
+                    edge = rawDataResolve.__resolverEdgesPage__(check)
+                    temp_cursor = edge["cursor"]
+                    if edge["creation_time"] != 0:
+                        is_up_to_time, arrive_first_catch_time, temp_time = Auxiliary.dateCompare(edge["creation_time"], target_name)
+                        if is_up_to_time:
+                            edge_list.append(edge)
+                    else:
+                        writer.writeLogToFile(traceBack=f"*規格不符的文章資料* 回傳資料待查：{str(raw_edge)}")
+                except Exception as e:
+                    writer.writeLogToFile(traceBack=e, isError=True)
+                    continue
+        else:
+            try:
+                if len(check['node']['group_feed']['edges']) == 0:
+                    continue
+                else:
+                    for raw_edge in check['node']['group_feed']['edges']:
+                        try:
+                            # group post的cursor 若為空,第一筆資料的格式和其他不同,若遇到特徵,則只更新下一個cursor而不抓資料
+                            if raw_edge['node']['__typename'] == "GroupsSectionHeaderUnit":
+                                temp_cursor = raw_edge["cursor"]
+                                break
+
+                            edge = rawDataResolve.__resolverEdgesPage__(raw_edge)
+                            temp_cursor = edge["cursor"]
+                            if edge["creation_time"] != 0:
+                                is_up_to_time, arrive_first_catch_time, temp_time = Auxiliary.dateCompare(edge["creation_time"], target_name)
+                                if is_up_to_time:
+                                    edge_list.append(edge)
+                            else:
+                                writer.writeLogToFile(traceBack=f"*規格不符的文章資料* 回傳資料待查：{str(raw_edge)}")
+                        except Exception as e:
+                            writer.writeLogToFile(traceBack=e, isError=True)
+                            continue
+            except:
+                # print(traceback.format_exc())
+                # print("other label data, abort")
+                continue
+    cursor = temp_cursor
+    time_now = temp_time
+    return edge_list, cursor, is_up_to_time, arrive_first_catch_time, time_now
 
 
 def hasNextPage_CometModern(resp: requests.Response) -> bool:
@@ -140,12 +196,12 @@ def hasNextPage_ProfileComet(page_info_obj: dict) -> bool:
 
 
 def hasNextPageGroupPost(resp: requests.Response) -> bool:
-    resp = json.loads(resp.text.split("\r\n", -1)[0])
-
-    if len(resp["data"]["node"]["group_feed"]["edges"]) == 0:
-        return False
-    else:
+    resp = json.loads(resp.text.split("\r\n", -1)[-1])
+    has_next_page = resp["data"]["page_info"]["has_next_page"]
+    if has_next_page:
         return True
+    else:
+        return False
 
 
 def hasNextPageFeedback(resp: requests.Response) -> bool:

@@ -61,7 +61,7 @@ def __getHeaders__(pageurl) -> dict:
     return headers
 
 
-def crawlPagePosts(pageURL, pageID, docID, reqName, processNum, targetName, queue: Queue = None, queueSignal: Queue = None) -> list:
+def crawlPagePosts(pageURL, pageID, docID, reqName, processNum, targetName, queue: Queue = None, queueSignal: Queue = None) -> tuple[list, str]:
 
     try_count = 0  # 全任務使用各種IP重試的次數統計
     proxy_count = 0  # 單一輪proxy_ip_list的遍歷索引, 每次proxy ip 更新後都會歸零
@@ -357,3 +357,188 @@ def crawlPostsComments(
                 f"行程{processNum}-> {targetName}:還剩下 {fill - queue.qsize()} 個任務未完成"
             )
     return contents
+
+
+def crawlGroupPosts(pageURL, groupPageID, groupDocID, reqName, processNum, targetName, queue: Queue = None, queueSignal: Queue = None) -> tuple[list, str]:
+
+    try_count = 0  # 全任務使用各種IP重試的次數統計
+    proxy_count = 0  # 單一輪proxy_ip_list的遍歷索引, 每次proxy ip 更新後都會歸零
+    proxy_ip_list = json.loads(os.environ["proxy_list"])
+    random_proxy_ip = "http://" + proxy_ip_list[proxy_count]
+    contents = []
+    cursor = ''
+    current_time = ''
+    url = ''
+    data = dict()
+    headers = __getHeaders__(pageURL)
+    headers["Connection"] = "close"
+    session = requests.session()
+
+    # 設定失敗重試策略
+    retry_strategy = Retry(
+        connect=3,
+        total=configSetting.retry,
+        status_forcelist=[429, 500, 502, 503, 504],
+        method_whitelist=["HEAD", "GET", "OPTIONS", "POST"],
+        backoff_factor=0.5
+    )
+    adapter = HTTPAdapter(pool_connections=20, pool_maxsize=100, max_retries=retry_strategy)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+
+    is_up_to_time = True
+    while True:
+        writer.writeLogToFile(f"行程{processNum}-> {targetName}:時間戳記: {current_time},文章網址: {url}, 當前的標記 : {cursor}")
+        # 參數sortingSetting表示貼文排序: TOP_POSTS(最相關)或CHRONOLOGICAL(最新貼文)
+        if cursor == '':
+            data = {'variables': str(
+                    {
+                        "count": "3",
+                        "id": groupPageID,
+                        "scale": "1",
+                        "stream_initial_count": "1",
+                        "useDefaultActor": "false",
+                        "renderLocation": "group",
+                        "feedLocation": "GROUP",
+                        "feedType": "DISCUSSION",
+                        "feedbackSource": "0",
+                        "focusCommentID": "null",
+                        "privacySelectorRenderLocation": "COMET_STREAM",
+                        "renderLocation": "group",
+                        "sortingSetting": "CHRONOLOGICAL",
+                        "stream_initial_count": "1",
+                        "useDefaultActor": "false",
+                        "__relay_internal__pv__IsWorkUserrelayprovider": "false",
+                        "__relay_internal__pv__GHLShouldChangeAdIdFieldNamerelayprovider": "true",
+                        "__relay_internal__pv__GHLShouldChangeSponsoredDataFieldNamerelayprovider": "true",
+                        "__relay_internal__pv__FBReels_deprecate_short_form_video_context_gkrelayprovider": "true",
+                        "__relay_internal__pv__CometFeedStoryDynamicResolutionPhotoAttachmentRenderer_experimentWidthrelayprovider": 500,
+                        "__relay_internal__pv__CometImmersivePhotoCanUserDisable3DMotionrelayprovider": "false",
+                        "__relay_internal__pv__WorkCometIsEmployeeGKProviderrelayprovider": "false",
+                        "__relay_internal__pv__IsMergQAPollsrelayprovider": "false",
+                        "__relay_internal__pv__FBReelsMediaFooter_comet_enable_reels_ads_gkrelayprovider": "true",
+                        "__relay_internal__pv__CometUFIReactionsEnableShortNamerelayprovider": "false",
+                        "__relay_internal__pv__CometUFIShareActionMigrationrelayprovider": "true",
+                        "__relay_internal__pv__CometIsReplyPagerDisabledrelayprovider": "false",
+                        "__relay_internal__pv__StoriesArmadilloReplyEnabledrelayprovider": "true",
+                        "__relay_internal__pv__CometFeedPYMKHScrollInitialPaginationCountrelayprovider": 10,
+                        "__relay_internal__pv__FBReelsIFUTileContent_reelsIFUPlayOnHoverrelayprovider": "true",
+                    }),
+                    'doc_id': groupDocID,
+                    "__a": "1",
+                    "__comet_req": "15",
+                    "fb_api_req_friendly_name": reqName,
+                    "server_timestamps": "true",
+                }
+        else:
+            data = {'variables': str(
+                    {
+                        "count": "3",
+                        "cursor": cursor,
+                        "id": groupPageID,
+                        "scale": "1",
+                        "stream_initial_count": "1",
+                        "useDefaultActor": "false",
+                        "renderLocation": "group",
+                        "feedLocation": "GROUP",
+                        "feedType": "DISCUSSION",
+                        "feedbackSource": "0",
+                        "focusCommentID": "null",
+                        "privacySelectorRenderLocation": "COMET_STREAM",
+                        "renderLocation": "group",
+                        "sortingSetting": "CHRONOLOGICAL",
+                        "stream_initial_count": "1",
+                        "useDefaultActor": "false",
+                        "__relay_internal__pv__IsWorkUserrelayprovider": "false",
+                        "__relay_internal__pv__GHLShouldChangeAdIdFieldNamerelayprovider": "true",
+                        "__relay_internal__pv__GHLShouldChangeSponsoredDataFieldNamerelayprovider": "true",
+                        "__relay_internal__pv__FBReels_deprecate_short_form_video_context_gkrelayprovider": "true",
+                        "__relay_internal__pv__CometFeedStoryDynamicResolutionPhotoAttachmentRenderer_experimentWidthrelayprovider": 500,
+                        "__relay_internal__pv__CometImmersivePhotoCanUserDisable3DMotionrelayprovider": "false",
+                        "__relay_internal__pv__WorkCometIsEmployeeGKProviderrelayprovider": "false",
+                        "__relay_internal__pv__IsMergQAPollsrelayprovider": "false",
+                        "__relay_internal__pv__FBReelsMediaFooter_comet_enable_reels_ads_gkrelayprovider": "true",
+                        "__relay_internal__pv__CometUFIReactionsEnableShortNamerelayprovider": "false",
+                        "__relay_internal__pv__CometUFIShareActionMigrationrelayprovider": "true",
+                        "__relay_internal__pv__CometIsReplyPagerDisabledrelayprovider": "false",
+                        "__relay_internal__pv__StoriesArmadilloReplyEnabledrelayprovider": "true",
+                        "__relay_internal__pv__CometFeedPYMKHScrollInitialPaginationCountrelayprovider": 10,
+                        "__relay_internal__pv__FBReelsIFUTileContent_reelsIFUPlayOnHoverrelayprovider": "true",
+                    }),
+                    'doc_id': groupDocID,
+                    "__a": "1",
+                    "__comet_req": "15",
+                    "fb_api_req_friendly_name": reqName,
+                    "server_timestamps": "true",
+                }
+        try:
+            resp = session.post(url='https://www.facebook.com/api/graphql/',
+                                data=data,
+                                headers=headers,
+                                timeout=configSetting.timeout,
+                                verify=False,
+                                proxies={"http": random_proxy_ip, "https": random_proxy_ip}
+                                )
+
+            if reqName == 'GroupsCometFeedRegularStoriesPaginationQuery':
+                edge_list, cursor_now, is_up_to_time, arrive_first_catch_time, time_now = helper.__parsingGroupPosts__(resp, targetName)
+
+            # 文章有分享的資料才做處理
+            if len(edge_list) != 0:
+                contents = contents + edge_list
+                url = edge_list[len(edge_list) - 1]["url"]
+            if not helper.hasNextPageGroupPost(resp):
+                raise UnboundLocalError(f"Reached the last page")
+            else:
+                cursor = cursor_now
+                current_time = time_now
+            # 超過設定的撈取日期
+            if (is_up_to_time == False) and (arrive_first_catch_time == True):
+                break
+            else:
+                continue
+
+        except UnboundLocalError:
+            print("Reached the last page")
+            break
+
+        except Exception as e:
+            if (not isinstance(e, ProtocolError)) and (not isinstance(e, ChunkedEncodingError)) and (not isinstance(e, ConnectionError)) and (not isinstance(e, SSLError)) and (not isinstance(e, UnboundLocalError)) and (not isinstance(e, TimeoutError)) and (not isinstance(e, KeyError)) and (not isinstance(e, ConnectTimeoutError)) and (not isinstance(e, MaxRetryError)) and (not isinstance(e, ConnectionResetError)) and (not isinstance(e, ProxyError)) and (not isinstance(e, ConnectTimeout)):
+                writer.writeLogToFile(traceBack=f"grouppageid: {groupPageID}, docid: {groupDocID}, cursor: {cursor}")
+            writer.writeLogToFile(traceback.format_exc(), True)
+            
+            if queueSignal is None:
+                proxy_count, try_count, proxy_ip_list = proxy.updateProxyAndStatus(
+                    proxy_count, try_count, proxy_ip_list, processNum
+                )
+            else:
+                proxy_count, try_count, proxy_ip_list = (
+                    proxy.updateMultiThreadProxyAndStatus(
+                        proxy_count,
+                        try_count,
+                        proxy_ip_list,
+                        processNum,
+                        groupPageID,
+                        len(contents),
+                        queueSignal,
+                    )
+                )
+            random_proxy_ip = "http://" + proxy_ip_list[proxy_count]
+            if try_count >= configSetting.proxy_try_count:
+                print(f"行程{processNum}-> failed to catch posts after {try_count} times trying...")
+                break
+            else:
+                continue
+        finally:
+            time.sleep(random.randint(2, 3))
+    print(f"{targetName} 完成抓取，共有{len(contents)}則")
+    writer.writeLogToFile(f"{targetName} 完成抓取，共有{len(contents)}則")
+    session.close()
+    if queue is not None:
+        queue.put(contents)
+        fill = configSetting.input_data_num
+        if queue.qsize() % configSetting.queue_show_interval == 0:
+            print(f"行程{processNum}-> {targetName}:目前完成的任務數量為 {queue.qsize()}")
+        if fill - queue.qsize() < 20:
+            print(f"行程{processNum}-> {targetName}:還剩下 {fill - queue.qsize()} 個任務未完成")
+    return contents, targetName

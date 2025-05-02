@@ -195,6 +195,11 @@ def summeryTodayCollection(date: datetime, today_path: str) -> list:
         df["內容"] = df["內容"].map(content_clean)
         df["內容"] = df["內容"].replace("", np.nan)
         df.dropna(subset=["內容"], inplace=True)
+        
+        # 客製化過濾
+        if configSetting.json_array_data["taskSetting"]["contentCustomFilter"]:
+            filter_pattern = '|'.join(configSetting.json_array_data["taskSetting"]["filterList"])
+            df = df[df["內容"].str.contains(filter_pattern, na=False)]
         if len(df.index) <= 0:
             return list()
         record_list = df.to_dict("records")
