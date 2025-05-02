@@ -158,13 +158,17 @@ def data_summery_and_upload(queue: Queue, screenDriver: webDriver.screenshotDriv
         writer.writeLogToFile("本輪沒有抓到有效資料，故直接進入休息")
         print("本輪沒有抓到有效資料，故直接進入休息")
         return
+    
+    if configSetting.need_image_record:
+        # 針對文章進行截圖存檔
+        # 經討論暫時不需要截圖功能
+        dataLoadAndParse.fetchPostsPicture(queue=queue, recordList=record_list, path=today_path, screenDriver=screenDriver)
+
+    
     # 直接將整批資料往queue中輸送
     deep_copy_record_list = copy.deepcopy(record_list)
     queue.put(deep_copy_record_list)
 
-    # # 針對文章進行截圖存檔
-    # 經討論暫時不需要截圖功能
-    # dataLoadAndParse.fetchPostsPicture(queue=queue, recordList=record_list, path=today_path, screenDriver=screenDriver)
 
 
 if __name__ == "__main__":
@@ -187,8 +191,8 @@ if __name__ == "__main__":
             now = datetime.now()
             time_point = now.strftime("%Y-%m-%d %H:%M:%S")
 
-            # if now.hour > 22 or now.hour < 8:
-            if False:
+            if now.hour > 22 or now.hour < 8:
+            # if False:
                 stop_event.set()  # 发送子程序退出信号
                 p.join()
                 print("子程序已终止")
