@@ -221,7 +221,7 @@ def crawlPagePosts(pageURL, pageID, docID, reqName, processNum, targetName, queu
     session.close()
     if queue is not None:
         queue.put(contents)
-        fill = int(os.environ.get("fan_pages_list_len"))
+        fill = configSetting.input_data_num
         if queue.qsize() % configSetting.queue_show_interval == 0:
             print(f"行程{processNum}-> {targetName}:目前完成的任務數量為 {queue.qsize()}")
         if fill - queue.qsize() < 20:

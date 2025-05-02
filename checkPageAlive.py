@@ -13,64 +13,74 @@ from httpx import AsyncClient
 
 async def alive_check() -> list:
     json_data = configSetting.json_array_data
-    targetURLS = json_data["targetURL"]
-    targetNames = json_data["targetName"]
-    targetPageID = json_data["targetPageID"]
     inspect_account_dict = configSetting.inspect_data
     # 分批
-    targetURLS_split = Auxiliary.split(targetURLS, configSetting.check_alive_batch)
-    targetNames_split =Auxiliary.split(targetNames, configSetting.check_alive_batch)
-    targetPageID_split = Auxiliary.split(targetPageID, configSetting.check_alive_batch)
+    targets_split = Auxiliary.split(json_data["targets"], configSetting.check_alive_batch)
+    new_target_list = []
     new_url_list = []
     new_name_list = []
-    page_id_list = []
+    id_list = []
     check_url_use = 0
 
     # 分批處理網址檢查
     for idx in range(0, configSetting.check_alive_batch):
         task_list = list()
         async with httpx.AsyncClient(timeout=configSetting.timeout_async) as client:
-            for url, name, page_id in zip(targetURLS_split[idx], targetNames_split[idx], targetPageID_split[idx]):
-                task_list.append(check(name, url, page_id, check_url_use, client))
+            for target_object in targets_split[idx]:
+                task_list.append(check(
+                    target_object["targetName"], 
+                    target_object["targetURL"], 
+                    target_object["targetID"], 
+                    target_object["targetType"], 
+                    check_url_use, 
+                    client))
                 check_url_use = check_url_use ^ 1
             results = await asyncio.gather(*task_list)
 
-        for name, url, page_id, is_alive in results:
+        for name, url, id, type, is_alive in results:
             if is_alive:
                 # 確認存活，從觀察清單中剃除
                 if name in inspect_account_dict:
                     del inspect_account_dict[name]
-                new_name_list.append(name)
-                new_url_list.append(url)
-                page_id_list.append(page_id)
+                new_target_list.append({
+                    "targetName": name,
+                    "targetURL": url,
+                    "targetID": id,
+                    "targetType": type
+                })
             else:
                 if name in inspect_account_dict:
                     inspect_account_dict[name]["count"] = inspect_account_dict[name]["count"] + 1
                     # 還在觀察狀態，可持續保留
                     if inspect_account_dict[name]["count"] <= configSetting.check_alive_deadline:
-                        new_name_list.append(name)
-                        new_url_list.append(url)
-                        page_id_list.append(page_id)
+                        new_target_list.append({
+                            "targetName": name,
+                            "targetURL": url,
+                            "targetID": id,
+                            "targetType": type
+                        })
                 else:
                     # 第一次觀察到可能被封，首次加進觀察名單中
                     inspect_account_dict[name] = {
                         "name":name,
                         "url": url,
-                        "page_id": page_id,
+                        "id": id,
+                        "type": type,
                         "count": 1
                     }
-                    new_name_list.append(name)
-                    new_url_list.append(url)
-                    page_id_list.append(page_id)
+                    new_target_list.append({
+                        "targetName": name,
+                        "targetURL": url,
+                        "targetID": id,
+                        "targetType": type
+                    })
         print(f"第{idx+1}批檢查完畢，休息{configSetting.check_alive_sleep}秒")
         if idx+1 == configSetting.check_alive_batch:
             break
         else:
             time.sleep(configSetting.check_alive_sleep)
 
-    json_data["targetURL"] = new_url_list
-    json_data["targetName"] = new_name_list
-    json_data["targetPageID"] = page_id_list
+    json_data["targets"] = new_target_list
     json_obj = json.dumps(json_data, indent=4, ensure_ascii=False)
     inspect_obj = json.dumps(inspect_account_dict, indent=4, ensure_ascii=False)
     with open(f"{configSetting.ROOT_PATH}/config/input.json", "w", encoding="utf-8") as outfile:
@@ -81,7 +91,7 @@ async def alive_check() -> list:
 
 
 async def check(
-    name: str, url: str, page_id_old:str, check_url_use: int, client: AsyncClient
+    name: str, url: str, page_id_old:str, type:str, check_url_use: int, client: AsyncClient
 ) -> tuple[str, str, str, bool]:
     try:
         print(f"檢查粉專:{name}")
@@ -140,7 +150,7 @@ async def check(
             writer.writeTempFile(filename=f"page_dTree_{name}", content=resp.text)
             page_id = page_id_old
 
-        return name, url, page_id, is_alive
+        return name, url, page_id, type, is_alive
     except Exception as e:
         print(f"異常錯誤:{name}, 錯誤訊息: {e}")
         raise BaseException

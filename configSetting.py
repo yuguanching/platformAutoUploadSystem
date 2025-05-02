@@ -55,7 +55,7 @@ line_bot_channel_secret = configSetting.cfg.get("LineChatBot", "CHANNEL_SECRET")
 
 # ---------- tasks settings ----------
 # 根據輸入資料的多寡決定執行程序的個數
-input_data_num = len(json_array_data["targetName"])
+input_data_num = len(json_array_data["targets"])
 process_worker = 1
 if input_data_num >= 1 and input_data_num <= 4:
     process_worker = input_data_num

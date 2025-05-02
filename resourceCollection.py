@@ -22,36 +22,27 @@ def runFansPage(jsonArrayDataSub, processNum) -> str:
     """
     jsonArrayDataSub: 已經透過多行程分配過的輸入資料
     """
-    target_urls = jsonArrayDataSub["targetURL"]
-    target_names = jsonArrayDataSub["targetName"]
-    target_page_ids = jsonArrayDataSub["targetPageID"]
-    target_page_docids = jsonArrayDataSub["targetPageDocID"]
-    target_page_reqnames = jsonArrayDataSub["targetPageReqName"]
+    
+    targets = jsonArrayDataSub["targets"]
 
     results = []
     q_data = Queue()  # 幫助內部計數用
     q_signal = Queue()  # 信號傳遞交換區
-    thread_workers = thread.generateThreadWorkers(len(target_urls) // 3)
+    thread_workers = thread.generateThreadWorkers(len(targets) // 3)
     with ThreadPoolExecutor(max_workers=thread_workers) as executor:
         print(f"行程{processNum}-> 啟動，抓取線程共{thread_workers}條")
-        for target_url, target_name, page_id, page_docid, page_reqname in zip(
-            target_urls,
-            target_names,
-            target_page_ids,
-            target_page_docids,
-            target_page_reqnames,
-        ):
+        for target_object in targets:
             # 每個粉專資料有自己的子資料夾存放
-            Auxiliary.checkDirAndCreate(target_name)
-            print(f"開始抓取 {target_name} 的文章資料")
+            Auxiliary.checkDirAndCreate(target_object["targetName"])
+            print(f"開始抓取 {target_object['targetName']} 的文章資料")
             result = executor.submit(
                 crawlRequests.crawlPagePosts,
-                target_url,
-                page_id,
-                page_docid,
-                page_reqname,
+                target_object["targetURL"],
+                target_object["targetID"],
+                target_object["docID"],
+                target_object["reqName"],
                 processNum,
-                target_name,
+                target_object["targetName"],
                 q_data,
                 q_signal,
             )
@@ -72,16 +63,19 @@ def scrapeFacebookDailyPosts():
 
     json_array_data = reader.readInputJson(target_file=f"{configSetting.ROOT_PATH}/config/input.json")
 
+    args_list = []
+    result_list = []
+    process_futures = []
     process_worker = 1
     posts_driver = webDriver.postsDriver(driver=None, options=None, isLogin=False)
     posts_driver.setOptions(needHeadless=configSetting.need_headless, needImage=False)
     posts_driver.driverInitialize()
     page_docid = "8009237869104587"
     page_reqname = "ProfileCometTimelineFeedRefetchQuery"
+    group_docid = "9970847139662973"
+    group_reqname = "GroupsCometFeedRegularStoriesPaginationQuery"
     comment_docid = "7031467293642902"
     comment_reqname = "CometFocusedStoryViewUFIQuery"
-    target_urls = json_array_data["targetURL"]
-    target_names = json_array_data["targetName"]
 
     # 取第一組作一次doc_id 的嘗試抓取，有抓到就直接停止
     # for url_for_docid, name_for_docid in zip(target_urls, target_names):
@@ -105,29 +99,26 @@ def scrapeFacebookDailyPosts():
     #     else:
     #         print("成功取得docid")
     #         break
+    
+    # 根據主體的類型賦予對應的docid和reqname
+    for target_object in json_array_data["targets"]:
+        if target_object["targetType"] == "individual":
+            target_object["docID"] = page_docid
+            target_object["reqName"] = page_reqname
+        elif target_object["targetType"] == "group":
+            target_object["docID"] = group_docid
+            target_object["reqName"] = group_reqname
 
-    page_id_list = json_array_data["targetPageID"]
-    os.environ['fan_pages_list_len'] = str(len(page_id_list))
-    json_array_data["targetPageDocID"] = [page_docid for _ in range(len(page_id_list))]
-    json_array_data["targetPageReqName"] = [page_reqname for _ in range(len(page_id_list))]
+
     # 按行程的數量平分工作量
-    target_url_split = Auxiliary.split(json_array_data["targetURL"], process_worker)
-    target_name_split = Auxiliary.split(json_array_data["targetName"], process_worker)
-    target_page_id_split = Auxiliary.split(json_array_data["targetPageID"], process_worker)
-    target_page_docid_split = Auxiliary.split(json_array_data["targetPageDocID"], process_worker)
-    target_page_reqname_split = Auxiliary.split(json_array_data["targetPageReqName"], process_worker)
-
-    args_list = []
-    result_list = []
-    process_futures = []
+    target_split = Auxiliary.split(json_array_data["targets"], process_worker)
+    
+    print(target_split)
+    time.sleep(100000)
 
     for i in range(process_worker):
         json_array_data_copy_temp = json_array_data.copy()
-        json_array_data_copy_temp["targetURL"] = target_url_split[i]
-        json_array_data_copy_temp["targetName"] = target_name_split[i]
-        json_array_data_copy_temp["targetPageID"] = target_page_id_split[i]
-        json_array_data_copy_temp["targetPageDocID"] = target_page_docid_split[i]
-        json_array_data_copy_temp["targetPageReqName"] = target_page_reqname_split[i]
+        json_array_data_copy_temp["targets"] = target_split[i]
 
         args_list.append(json_array_data_copy_temp)
 
@@ -135,7 +126,7 @@ def scrapeFacebookDailyPosts():
         print(f"已配置{process_worker}個處理行程等待執行")
         for i in range(len(args_list)):
             print(f"任務 {i} 植入任務列表")
-            writer.writeLogToFile(f"process {str(i)} : {json.dumps(args_list[i]['targetName'], ensure_ascii=False)}")
+            writer.writeLogToFile(f"process {str(i)} : {json.dumps(args_list[i]['targets'], ensure_ascii=False)}")
             process_future = executor.submit(runFansPage, args_list[i], i)
             process_futures.append(process_future)
             time.sleep(i / 2)  # 避免短時間一次執行多條程序所作的緩衝
@@ -190,20 +181,19 @@ if __name__ == "__main__":
             screenshot_driver.driverInitialize()
             now = datetime.now()
             time_point = now.strftime("%Y-%m-%d %H:%M:%S")
-
-            if now.hour > 22 or now.hour < 8:
-            # if False:
-                stop_event.set()  # 发送子程序退出信号
-                p.join()
-                print("子程序已终止")
-                sys.exit(0)
-            else:
+            
+            if now.hour>=configSetting.json_array_data["taskSetting"]["taskStartIntervalHour"] and now.hour <= configSetting.json_array_data["taskSetting"]["taskEndIntervalHour"]:
                 proxy_ip_list = proxy.gRequestsProxyList(None)
                 ip_list_str = json.dumps(proxy_ip_list)
                 os.environ["proxy_list"] = ip_list_str
                 scrapeFacebookDailyPosts()
                 data_summery_and_upload(queue=task_queue, screenDriver=screenshot_driver, today_path=today_path)
-
+            else:
+                stop_event.set()  # 发送子程序退出信号
+                p.join()
+                print("子程序已终止")
+                sys.exit(0)
+                
             print("完成本輪資料抓取與歸檔任務")
             screenshot_driver.clearDriver()
             minutes_interval = random.randint(3, 5)

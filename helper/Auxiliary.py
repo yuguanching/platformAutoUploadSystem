@@ -9,12 +9,25 @@ from ioService import writer, reader
 
 
 def createIndexExcelAndRead() -> None:
+    target_name_list = []
+    target_url_list = []
+    target_type_list = []
+    target_id_list = []
+    for target in configSetting.json_array_data["targets"]:
+        # 每個粉專資料有自己的子資料夾存放
+        target_name_list.append(target["targetName"])
+        target_url_list.append(target["targetURL"])
+        target_type_list.append(target["targetType"])
+        target_id_list.append(target["targetID"])
+        
 
     # 創建目標粉專的目錄excel
     index_df = pd.DataFrame(
         {
-            "粉專": configSetting.json_array_data["targetName"],
-            "連結": configSetting.json_array_data["targetURL"],
+            "粉專": target_name_list,
+            "連結": target_url_list,
+            "ID": target_id_list,
+            "類型": target_type_list,
         }
     )
     writer.pdToExcel(
