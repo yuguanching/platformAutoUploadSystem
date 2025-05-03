@@ -72,8 +72,6 @@ multithread_high = 200
 # 圖片截圖開關
 need_image_record = False
 
-# 通報渠道
-report_channel = 2  # 1:platform 2:Line
 # ---------- tasks settings ----------
 
 

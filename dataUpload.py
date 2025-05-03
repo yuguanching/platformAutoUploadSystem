@@ -19,7 +19,7 @@ def data_upload_worker(queue: Queue, today_path:str, is_event_stop:Event):
             current_record_list = queue.get(block=True)
             print(f"取得欲上傳資料")
             results = []
-            if configSetting.report_channel ==1 :
+            if configSetting.json_array_data["taskSetting"]["reportChannel"] ==1 :
                 # 帳號上傳清單初始化:
                 for upload_account, _ in upload_account_allocate_info.items():
                     upload_account_allocate_info[upload_account]["round_post_upload_list"] = list()
