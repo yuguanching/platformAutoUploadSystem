@@ -131,6 +131,10 @@ def __parsingGroupPosts__(resp: requests.Response, target_name: str) -> tuple[li
     is_up_to_time = True
     arrive_first_catch_time = False
     for i, res in enumerate(resps):
+        temp = json.loads(res)
+        if "label" in temp: 
+            if temp["label"] != "GroupsCometFeedRegularStories_paginationGroup$stream$GroupsCometFeedRegularStories_group_group_feed":
+                continue
         check = json.loads(res)['data']
         if "node" not in check:
             continue
@@ -196,8 +200,18 @@ def hasNextPage_ProfileComet(page_info_obj: dict) -> bool:
 
 
 def hasNextPageGroupPost(resp: requests.Response) -> bool:
-    resp = json.loads(resp.text.split("\r\n", -1)[-1])
-    has_next_page = resp["data"]["page_info"]["has_next_page"]
+    has_next_page = False
+    resp_split = resp.text.split("\r\n", -1)
+    for i, resp_text in enumerate(resp_split):
+        res = json.loads(resp_text)
+        if "label" not in res:
+            continue
+        else:
+            if res["label"] != "GroupsCometFeedRegularStories_paginationGroup$defer$GroupsCometFeedRegularStories_group_group_feed$page_info":
+                continue
+            else:
+                has_next_page = res["data"]["page_info"]["has_next_page"]
+                break
     if has_next_page:
         return True
     else:

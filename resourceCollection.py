@@ -202,6 +202,7 @@ if __name__ == "__main__":
                 data_summery_and_upload(queue=task_queue, screenDriver=screenshot_driver, today_path=today_path)
             else:
                 stop_event.set()  # 发送子程序退出信号
+                task_queue.put("stop")  # 向队列发送停止信号
                 p.join()
                 print("子程序已终止")
                 sys.exit(0)

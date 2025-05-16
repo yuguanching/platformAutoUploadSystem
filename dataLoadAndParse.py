@@ -198,8 +198,11 @@ def summeryTodayCollection(date: datetime, today_path: str) -> list:
         
         # 客製化過濾
         if configSetting.json_array_data["taskSetting"]["contentCustomFilter"]:
-            filter_pattern = '|'.join(configSetting.json_array_data["taskSetting"]["filterList"])
+            keywords = configSetting.json_array_data["taskSetting"]["filterList"]
+            filter_pattern = '|'.join(keywords)
             df = df[df["內容"].str.contains(filter_pattern, na=False)]
+            df["匹配關鍵字"] = df["內容"].apply(lambda x: Auxiliary.match_all_keywords(x, keywords))
+            
         if len(df.index) <= 0:
             return list()
         record_list = df.to_dict("records")
@@ -239,8 +242,8 @@ def fetchPostsPicture(queue:Queue, recordList: list, path: str, screenDriver: we
     for idx, record in enumerate(recordList):
         print(f"開始進行貼文的截圖，id: {idx}")
         screenDriver._getSource(url=record["文章網址"], postID=record["文章id"], subDir=path)
-        deep_copy_record = copy.deepcopy(record)
-        queue.put(deep_copy_record)
+        # deep_copy_record = copy.deepcopy(record)
+        # queue.put(deep_copy_record)
 
 
 async def read_all_fans_page_data(df:pd.DataFrame, fans_page_path_list: list) -> pd.DataFrame:

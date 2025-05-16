@@ -182,3 +182,7 @@ def clear_four_bytes_utf8(text:str)->str:
     output = ""
     output = "".join(c for c in text if len(c.encode("utf8")) < 4)
     return output
+
+
+def match_all_keywords(text:str, keywords:list[str]) -> list[str]:
+    return [kw for kw in keywords if kw in text]

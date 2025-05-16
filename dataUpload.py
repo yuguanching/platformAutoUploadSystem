@@ -2,11 +2,13 @@ import traceback
 import configSetting
 import copy
 import random
+import time
 from multiprocessing.synchronize import Event
 from ioService import writer
 from webManager import webDriver
 from queue import Queue
-from Line import action
+from Line import action as line_action
+from Telegram import action as telegram_action
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # # 針對處理好的資料按上傳帳號分配進行上傳
@@ -18,8 +20,11 @@ def data_upload_worker(queue: Queue, today_path:str, is_event_stop:Event):
             print("等待資料上傳...")
             current_record_list = queue.get(block=True)
             print(f"取得欲上傳資料")
+            if type(current_record_list) == str:
+                print(f"上傳資料為stop字串，結束上傳")
+                break
             results = []
-            if configSetting.json_array_data["taskSetting"]["reportChannel"] ==1 :
+            if configSetting.json_array_data["taskSetting"]["reportChannel"] == 1 :
                 # 帳號上傳清單初始化:
                 for upload_account, _ in upload_account_allocate_info.items():
                     upload_account_allocate_info[upload_account]["round_post_upload_list"] = list()
@@ -50,10 +55,25 @@ def data_upload_worker(queue: Queue, today_path:str, is_event_stop:Event):
                         except:
                             print(traceback.format_exc())
                             writer.writeLogToFile(traceback.format_exc(), isError=True)
-            else:
+            elif configSetting.json_array_data["taskSetting"]["reportChannel"] == 2:
                 for current_record in current_record_list:
                     msg = f'''通報粉專: {current_record["粉專名稱"]}\n發佈時間: {current_record["時間"]}\n內容: {current_record["內容"]}\n文章連結: {current_record["文章網址"]}'''
-                    action.send_msg_to_bot(msg=msg)
+                    line_action.send_msg_to_bot(msg=msg)
+            else:
+                for current_record in current_record_list:
+                    if len(current_record["內容"]) > 150:
+                        content_to_send = current_record["內容"][:150] + "..."
+                    else:
+                        content_to_send = current_record["內容"]
+                    if "匹配關鍵字" in current_record:
+                        keywords = current_record["匹配關鍵字"]
+                    else:
+                        keywords = ""    
+                        
+                    msg = f'''通報粉專: {current_record["粉專名稱"]}\n發佈時間: {current_record["時間"]}\n內容: {content_to_send}\n匹配關鍵字: {keywords}\n文章連結: {current_record["文章網址"]}'''
+                    local_img_link = f"{today_path}/img/{str(current_record['文章id'])}.png"
+                    telegram_action.send_img_to_bot(img_path=local_img_link, extra_text=msg)
+                    time.sleep(1)
 
             if queue.empty() and is_event_stop.is_set():
                 break

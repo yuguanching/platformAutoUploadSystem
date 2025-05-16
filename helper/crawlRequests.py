@@ -393,15 +393,15 @@ def crawlGroupPosts(pageURL, groupPageID, groupDocID, reqName, processNum, targe
         if cursor == '':
             data = {'variables': str(
                     {
-                        "count": "3",
+                        "count": 3,
                         "id": groupPageID,
-                        "scale": "1",
+                        "scale": 2,
                         "stream_initial_count": "1",
                         "useDefaultActor": "false",
                         "renderLocation": "group",
                         "feedLocation": "GROUP",
                         "feedType": "DISCUSSION",
-                        "feedbackSource": "0",
+                        "feedbackSource": 1,
                         "focusCommentID": "null",
                         "privacySelectorRenderLocation": "COMET_STREAM",
                         "renderLocation": "group",
@@ -433,16 +433,16 @@ def crawlGroupPosts(pageURL, groupPageID, groupDocID, reqName, processNum, targe
         else:
             data = {'variables': str(
                     {
-                        "count": "3",
+                        "count": 3,
                         "cursor": cursor,
                         "id": groupPageID,
-                        "scale": "1",
+                        "scale": 2,
                         "stream_initial_count": "1",
                         "useDefaultActor": "false",
                         "renderLocation": "group",
                         "feedLocation": "GROUP",
                         "feedType": "DISCUSSION",
-                        "feedbackSource": "0",
+                        "feedbackSource": 1,
                         "focusCommentID": "null",
                         "privacySelectorRenderLocation": "COMET_STREAM",
                         "renderLocation": "group",

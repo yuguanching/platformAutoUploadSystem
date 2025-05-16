@@ -1,6 +1,7 @@
 import os
 import configSetting
 import sys
+import telepot
 import multiprocessing as mp
 from ioService import reader
 from webManager import webDriver
@@ -49,6 +50,10 @@ line_bot_group_id = configSetting.cfg.get("LineChatBot", "GROUP_ID")
 line_bot_access_token = configSetting.cfg.get("LineChatBot", "ACCESS_TOKEN")
 line_bot_channel_secret = configSetting.cfg.get("LineChatBot", "CHANNEL_SECRET")
 
+# Telegram Bot 資訊
+telegram_bot_token = configSetting.cfg.get("TelegramBot", "ACCESS_TOKEN")
+telegram_bot_group_id = configSetting.cfg.get("TelegramBot", "GROUP_ID")
+telegram_bot = telepot.Bot(telegram_bot_token)
 
 # ---------- input settings ----------
 
@@ -70,7 +75,7 @@ multithread_median = 100
 multithread_high = 200
 
 # 圖片截圖開關
-need_image_record = False
+need_image_record = True
 
 # ---------- tasks settings ----------
 

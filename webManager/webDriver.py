@@ -70,6 +70,11 @@ class customWebDriver(ABC):
         # google document 提到需要加上這個屬性來規避 bug
         self.options.add_argument("--disable-gpu")
         # 不加载图片, 提升速度(有操作截圖功能的話需要打開)
+        
+        # 2025-05-01 遇到的問題:機器本身沒有GPU,所以無法使用GPU加速,進而噴錯
+        self.options.add_argument('--enable-unsafe-webgpu') # 避免 fallback 出錯（可選）
+        self.options.add_argument('--enable-unsafe-swiftshader') # 避免 fallback 出錯（可選）
+        
         if needImage:
             self.options.add_argument("blink-settings=imagesEnabled=false")
         if needHeadless:
@@ -428,6 +433,11 @@ class screenshotDriver(customWebDriver):
                 By.XPATH,
                 "//div[@class='xjbqb8w x1lq5wgf xgqcy7u x30kzoy x9jhf4c x78zum5 x1q0g3np xod5an3 x14vqqas x6ikm8r x10wlt62 x1n2onr6 x1k90msu x6o7n8i x9lcvmn x1m6m0jg']",
             )
+        elif "group" in current_url:  # 抓社團的類型
+            locator = (
+                By.XPATH,
+                "//div[@class='x1yztbdb x1n2onr6 xh8yej3 x1ja2u2z']",
+            )
         else:
             locator = (
                 By.XPATH,
@@ -439,9 +449,13 @@ class screenshotDriver(customWebDriver):
                 # personal_profile上面的部分截圖
                 self.driver.execute_script("window.scrollTo(0,0)")
                 time.sleep(2)
-                catch_element = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located(locator))
                 # 統一暫存到img資料夾,因涉及存檔,故加time.sleep
-                catch_element.screenshot(path)
+                if "group" in current_url:
+                    catch_element = WebDriverWait(self.driver, 20).until(EC.presence_of_all_elements_located(locator))
+                    catch_element[0].screenshot(path) # 會是一個list,所以要取[0]
+                else:
+                    catch_element = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located(locator))
+                    catch_element.screenshot(path)
                 try_success = True
                 print(f"{subDir}: 文章ID:{postID} 截圖完成")
                 break
