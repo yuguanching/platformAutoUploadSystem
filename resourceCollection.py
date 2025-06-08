@@ -64,7 +64,7 @@ def runFansPage(jsonArrayDataSub, processNum) -> str:
         for result in as_completed(results):
             try:
                 payload = result.result()
-                parser.buildCollectData(payload[0], payload[1])
+                parser.buildCollectData(payload[0], payload[1], False, True)
             except Exception as thread_e:
                 writer.writeLogToFile(f"行程{processNum}-> 運作時執行緒意外報錯: {thread_e}", True)
                 writer.writeLogToFile(f"行程{processNum}-> 詳細錯誤原因: {traceback.format_exc()}", True)
@@ -199,7 +199,7 @@ if __name__ == "__main__":
                 ip_list_str = json.dumps(proxy_ip_list)
                 os.environ["proxy_list"] = ip_list_str
                 scrapeFacebookDailyPosts()
-                data_summery_and_upload(queue=task_queue, screenDriver=screenshot_driver, today_path=today_path)
+                data_summery_and_upload(queue=task_queue, screenDriver=screenshot_driver, today_path=today_path) # type: ignore
             else:
                 stop_event.set()  # 发送子程序退出信号
                 task_queue.put("stop")  # 向队列发送停止信号
@@ -209,7 +209,7 @@ if __name__ == "__main__":
                 
             print("完成本輪資料抓取與歸檔任務")
             screenshot_driver.clearDriver()
-            minutes_interval = random.randint(3, 5)
+            minutes_interval = random.randint(60, 70)
             print(f"現在時間:{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}，休息{minutes_interval}分鐘")
             writer.writeLogToFile(f"休息{minutes_interval}分鐘")
             time.sleep(minutes_interval * 60)

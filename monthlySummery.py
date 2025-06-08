@@ -22,7 +22,7 @@ for dir in restore_data_dir_list:
 
 for dir in current_month_dir_list:
     excel_path = f"{target_dir}/{dir}/summery-collection.xlsx"
-    temp_df = pd.read_excel(excel_path, sheet_name="collection", usecols="B:R")
+    temp_df = pd.read_excel(excel_path, sheet_name="collection", usecols="B:U")
     df = pd.concat([df, temp_df], axis=0, ignore_index=True)
 
 writer.pdToExcel(

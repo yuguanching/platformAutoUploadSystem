@@ -186,3 +186,15 @@ def clear_four_bytes_utf8(text:str)->str:
 
 def match_all_keywords(text:str, keywords:list[str]) -> list[str]:
     return [kw for kw in keywords if kw in text]
+
+
+def number_str_to_int(text:str) -> int:
+    # 將字串中的數字轉換為整數
+    try:
+        # 預期字串中可能存在逗號隔開數字
+        text = text.replace(",", "")
+        # 嘗試將字串轉換為整數
+        return int(text)
+    except ValueError:
+        writer.writeLogToFile(traceBack=f"轉換失敗: {text} 無法轉換為整數", isError=True)
+        return 0  # 如果轉換失敗，返回0或其他預設值

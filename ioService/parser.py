@@ -113,12 +113,12 @@ def buildCollectData(rawDataList, subDir, dropNA=False, is_use_for_group=False) 
         }
     )
 
-    usecols = "B:L"
+    usecols = "B:M"
     # 抓取對象是社團而不是粉專的話
     if is_use_for_group:
         df["發文者"] = poster_name
         df["發文者個人網址"] = poster_url
-        usecols = "B:N"
+        usecols = "B:O"
 
     if dropNA:
         df["內容"].replace("", numpy.nan, inplace=True)

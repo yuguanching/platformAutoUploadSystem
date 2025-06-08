@@ -19,6 +19,8 @@ from abc import ABC, abstractmethod
 from webManager import customWait
 from ioService import writer
 from helper import Auxiliary
+from bs4 import BeautifulSoup, Tag
+
 
 
 # 關閉web driver的log訊息
@@ -292,7 +294,80 @@ class postsDriver(customWebDriver):
 
         time.sleep(time_pause)
         return resp
+    
+    def influenceReview(self, pageURL) -> str:
+        try:
+            self.driver.get(pageURL)
+        except Exception as e:
+            writer.writeLogToFile(traceBack=f"擴散分析存取網址: {pageURL}發生錯誤, 錯誤訊息: {e}", isError=True)
+            return False
+        time.sleep(2)
 
+        try:
+            jump_dialog_exit_locator = (By.XPATH, "//div[@class='x1n2onr6 x1ja2u2z x1afcbsf x78zum5 xdt5ytf x1a2a7pz x6ikm8r x10wlt62 x71s49j x1jx94hy x1qpq9i9 xdney7k xu5ydu1 xt3gfkd x104qc98 x1g2kw80 x16n5opg xl7ujzl xhkep3z x193iq5w' and @role='dialog']/child::div[@class='x92rtbv x10l6tqk x1tk7jg1 x1vjfegm']/child::div")
+            jel_element = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located(jump_dialog_exit_locator))
+            jel_element.click()
+            time.sleep(1)
+        except:
+            print("no jump")
+            pass
+        resp = self.driver.page_source
+        writer.writeTempFile(filename="qqqqqqq", content=resp)
+        return resp
+    
+    def parsePageSource(self, page_source: str, target_url:str, source_type:str) -> tuple[int, int, int, bool]:
+        # 使用BeautifulSoup或其他解析庫來解析page_source
+        soup = BeautifulSoup(page_source, 'html.parser')
+        thumb_count = 0
+        comment_count = 0
+        share_count = 0
+        # 定義完整的 class 字串
+        if source_type == "video":
+            try:
+                main_element:Tag = soup.find_all("div", {"class": "x78zum5 x1iyjqo2 xs83m0k x13a6bvl xeuugli x1n2onr6"})[0].find("div", recursive=False)
+            except Exception as e:
+                writer.writeLogToFile(traceBack=f"{target_url} 剖析頁面主節點時發生錯誤, 可能是頁面已失效: {e}", isError=True)
+                return 0, 0, 0, True
+            try:
+                thumb_count = Auxiliary.number_str_to_int(main_element.find_all("div", recursive=False)[0].find("div", recursive=False).get_text(strip=True))
+            except Exception as e:
+                writer.writeLogToFile(traceBack=f"{target_url} 剖析按讚數時發生錯誤: {e}", isError=True)
+                thumb_count = 0
+            try:
+                comment_raw_str = main_element.find_all("div", recursive=False)[2].get_text(strip=True)
+                comment_count = Auxiliary.number_str_to_int(comment_raw_str.split("則")[0])  # 取第一個數字
+            except Exception as e:
+                writer.writeLogToFile(traceBack=f"{target_url} 剖析留言數時發生錯誤: {e}", isError=True)
+                comment_count = 0
+            try:
+                share_count = 0
+            except Exception as e:
+                writer.writeLogToFile(traceBack=f"{target_url} 剖析分享數時發生錯誤: {e}", isError=True)
+                share_count = 0
+        else:
+            try:
+                main_element:Tag = soup.find_all("div", {"class": "x6s0dn4 xi81zsa x78zum5 x6prxxf x13a6bvl xvq8zen xdj266r xat24cr x1c1uobl xyri2b x80vd3b x1q0q8m5 xso031l x1diwwjn xbmvrgn x1y1aw1k x10b6aqq"})[0]
+            except Exception as e:
+                writer.writeLogToFile(traceBack=f"{target_url} 剖析頁面主節點時發生錯誤, 可能是頁面已失效: {e}", isError=True)
+                return 0, 0, 0, True
+            try:
+                thumb_count = Auxiliary.number_str_to_int(main_element.find_all("div", recursive=False)[0].find_all("span", recursive=False)[1].get_text(strip=True))
+            except Exception as e:
+                writer.writeLogToFile(traceBack=f"{target_url} 剖析按讚數時發生錯誤: {e}", isError=True)
+                thumb_count = 0
+            try:
+                comment_share_div_element = main_element.find_all("div", recursive=False)[1]
+                comment_share_elements = comment_share_div_element.find_all("div", recursive=False)
+                for element in comment_share_elements:
+                    if "留言" in element.text:
+                        comment_count = Auxiliary.number_str_to_int(element.text.split("則")[0])
+                    elif "分享" in element.text:
+                        share_count = Auxiliary.number_str_to_int(element.text.split("次")[0])
+            except Exception as e:
+                writer.writeLogToFile(traceBack=f"{target_url} 剖析留言數或分享數時發生錯誤: {e}", isError=True)
+                comment_count = 0
+                share_count = 0
+        return thumb_count, comment_count, share_count, False
 
 class feedbackDriver(customWebDriver):
     """取得分享行為相關docid資源的driver"""

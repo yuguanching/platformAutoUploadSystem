@@ -178,7 +178,7 @@ def summeryTodayCollection(date: datetime, today_path: str) -> list:
             old_df = pd.read_excel(
                 f"{today_path}/summery-collection.xlsx",
                 sheet_name="collection",
-                usecols="B:R",
+                usecols="B:U",
                 converters={"文章id": str},
             )
             old_df_dict = old_df.to_dict("records")
@@ -260,7 +260,7 @@ async def read_fans_page_data(file_path:str) -> pd.DataFrame:
     new_df = pd.read_excel(
     file_path,
     sheet_name="collection",
-    usecols="B:M",
+    usecols="B:O",
     converters={"文章id": str},
     )
     new_df.insert(loc=0, column="粉專名稱", value=dir_name)

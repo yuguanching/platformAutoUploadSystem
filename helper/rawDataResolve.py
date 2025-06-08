@@ -104,7 +104,7 @@ def __resolverEdgesPage__(edge) -> dict:
 
         # poster_url
         poster_url = comet_sections_['content']['story']['actors'][0]['url']
-        if poster_url == "":
+        if poster_url == "" or poster_url is None:
             poster_url = f"https://www.facebook.com/profile.php?id={comet_sections_['content']['story']['actors'][0]['id']}"
     # cursor
     except:
@@ -169,7 +169,7 @@ def __resolverEdgesPage__(edge) -> dict:
         "comment_count": comment_count,
         "reaction_count": reaction_count,
         "share_count": share_count,
-        "url": url,
+        "url": url, # type: ignore
         "image_url": image_url,
         "video_url": video_url,
         "cursor": cursor,
